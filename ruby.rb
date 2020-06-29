@@ -1,19 +1,19 @@
 require 'yaml'
+require 'pry'
 
 module BasicSerialization
     @@serializer = YAML 
 
-    def serialize
+    def serialize()
         obj = {}
         instance_variables.map do |var|
             obj[var] = instance_variable_get(var)
         end
-
         @@serializer.dump obj
     end
 
-    def unserialize  (string)
-        obj = @@serializer.parse(string)
+    def unserialize()
+        obj = YAML::load(File.read("save.yml"))
         obj.keys.each do |key|
             instance_variable_set(key, obj[key])
         end
@@ -23,7 +23,7 @@ end
 class Board
     include BasicSerialization
 
-    attr_reader :answer, :hidden_answer, :number_incorrect, :incorrect_letters
+    attr_accessor :answer, :hidden_answer, :number_incorrect, :incorrect_letters
 
     def initialize()
         @answer = create_answer()
@@ -146,12 +146,7 @@ class Board
     end
 end
 
-
 class Human
-    #include BasicSerialization
-
-    def initialize()
-    end
 
     def get_guess()
         puts "Please enter your guess (a-z)"
@@ -171,18 +166,25 @@ end
 board = Board.new()
 human = Human.new()
 
-#number_incorrect = 0
+puts "Would you like to load the previous saved game? (type 1 if yes)"
+if gets.chomp == '1'
+    board.unserialize()
+end
 while board.number_incorrect < 8
     board.print_board(board.number_incorrect)
+    puts "Would you like to save your progress? (1 for yes, 2 for no)"
+    if gets.chomp == '1'
+        File.open("save.yml", "w") { |file| file.write(board.serialize()) }
+        break
+    end
+
     guess = human.get_guess()
     board.evaluate(guess)
-    #number_incorrect = board.evaluate(guess)
     if board.check_winner()
         board.print_board(board.number_incorrect)
         puts "YOU WIN!!"
         break
-    end
-    if board.number_incorrect == 7
+    elsif board.number_incorrect == 7
         board.print_board(board.number_incorrect)
         puts "GAMEOVER - the winning word was #{board.answer}"
         break
